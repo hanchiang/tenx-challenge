@@ -3,12 +3,9 @@ use std::io;
 use std::process;
 use std::fs::File;
 use std::io::Read;
-use std::error;
 
 use chrono::DateTime;
 
-const EXCHANGE_RATE_REQUEST: &str = "EXCHANGE_RATE_REQUEST";
-const PRICE_UPDATE: &str = "PRICE_UPDATE";
 const NUM_TOKEN_PRICE_UPDATE: u32 = 6;
 const NUM_TOKEN_EXCHANGE_RATE_REQUEST: u32 = 5;
 const DATETIME_FORMAT: &str = "%+";
@@ -62,7 +59,7 @@ fn parse_input(input: &str) -> InputType {
     if num_tokens == NUM_TOKEN_PRICE_UPDATE {
         let datetime: u64 = match DateTime::parse_from_str(tokens[0], DATETIME_FORMAT) {
             Ok(d) => d.timestamp_millis() as u64,
-            Err(e) => return InputType::Invalid("Invalid date".to_string())
+            Err(_) => return InputType::Invalid("Invalid date".to_string())
         };
         let exchange = tokens[1].to_string();
         let source_currency = tokens[2].to_string();
@@ -120,7 +117,7 @@ fn main() {
 
     let splitted_lines = file_content.split("\n");
     for line in splitted_lines {
-        let tokens = match parse_input(line) {
+        match parse_input(line) {
             InputType::PriceUpdate(p) => println!("{:#?}", p),
             InputType::ExchangeRateRequest(e) => println!("{:#?}", e),
             InputType::Invalid(m) => println!("{:#?}", m)
