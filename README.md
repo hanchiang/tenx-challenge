@@ -9,7 +9,17 @@ Each edge is represented by the i, j entry in the adjacency matrix
 `<timestamp> <exchange> <source_currency> <destination_currency> <forward_factor> <backward_factor>`
 
 **Assumption**
-* source_currency and destination_currency must not be the same
+`source_currency` and `destination_currency` cannot be the same because it is meaningless to have price updates between the same currency
+
+## Exchange rate request
+**Format**
+`EXCHANGE_RATE_REQUEST <source_exchange> <source_currency> <destination_exchange> <destination_currency>`
+
+**Assumption**
+`source_currency` and `destination_currency` cannot be the same because the answer will be the same as `source_currency`, and this isn't a useful business question to solve
+
+## File
+Each line in the file follows the format of price update or exchange rate request ending with line break
 
 **Operations**
 If vertices don't exist, add them in the graph and add the edges.
