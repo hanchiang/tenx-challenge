@@ -1,6 +1,5 @@
 use std::env;
 use std::io;
-use std::process;
 use std::fs::File;
 use std::io::Read;
 
@@ -10,7 +9,6 @@ use chrono::DateTime;
 // Custom modules
 mod constants;
 mod model;
-
 
 fn read_file(file_name: &str) ->  Result<String, io::Error> {
     let mut file = match File::open(file_name) {
@@ -49,29 +47,25 @@ fn parse_input(input: &str) -> model::InputType {
             Err(_) => return model::InputType::Invalid("Invalid backward ratio".to_string())
         };
 
-        model::InputType::PriceUpdate(model::PriceUpdate {
-            datetime,
-            exchange,
-            source_currency,
-            dest_currency,
-            forward_ratio,
-            backward_ratio
-        })
+        model::InputType::PriceUpdate(model::PriceUpdate::new (
+            datetime, exchange, source_currency, dest_currency, forward_ratio, backward_ratio
+        ))
     } else if num_tokens == constants::NUM_TOKEN_EXCHANGE_RATE_REQUEST {
         let source_exchange = tokens[0].to_string();
         let source_currency = tokens[1].to_string();
         let dest_exchange = tokens[2].to_string();
         let dest_currency = tokens[3].to_string();
 
-        model::InputType::ExchangeRateRequest(model::ExchangeRateRequest {
-            source_exchange,
-            source_currency,
-            dest_exchange,
-            dest_currency
-        })
+        model::InputType::ExchangeRateRequest(model::ExchangeRateRequest::new(
+            source_exchange, source_currency, dest_exchange, dest_currency
+        ))
     } else {
         model::InputType::Invalid("Input is neither a price update nor exchange rate request".to_string())
     }
+}
+
+fn handle_price_update(price_update: model::PriceUpdate) {
+    println!("{:#?}", price_update);
 }
 
 
@@ -92,9 +86,9 @@ fn main() {
     let splitted_lines = file_content.split("\n");
     for line in splitted_lines {
         match parse_input(line) {
-            model::InputType::PriceUpdate(p) => println!("{:#?}", p),
-            model::InputType::ExchangeRateRequest(e) => println!("{:#?}", e),
-            model::InputType::Invalid(m) => println!("{:#?}", m)
+            model::InputType::PriceUpdate(price_update) => handle_price_update(price_update),
+            model::InputType::ExchangeRateRequest(exchange_rate_request) => println!("{:#?}", exchange_rate_request),
+            model::InputType::Invalid(m) => println!("{}. Moving to the next input line...", m)
         };
     }
 }
