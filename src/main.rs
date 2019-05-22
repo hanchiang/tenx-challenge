@@ -2,6 +2,8 @@ use std::env;
 use std::io;
 use std::fs::File;
 use std::io::Read;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 // Third party libraries
 use chrono::DateTime;
@@ -30,6 +32,7 @@ fn parse_input(input: &str) -> model::InputType {
     let tokens: Vec<&str> = input.split(" ").collect();
     let num_tokens: u32 = tokens.len() as u32;
 
+    // parse price update
     if num_tokens == constants::NUM_TOKEN_PRICE_UPDATE {
         let datetime: u64 = match DateTime::parse_from_str(tokens[0], constants::DATETIME_FORMAT) {
             Ok(d) => d.timestamp_millis() as u64,
@@ -51,6 +54,7 @@ fn parse_input(input: &str) -> model::InputType {
             datetime, exchange, source_currency, dest_currency, forward_ratio, backward_ratio
         ))
     } else if num_tokens == constants::NUM_TOKEN_EXCHANGE_RATE_REQUEST {
+        // parse exchange rate request
         let source_exchange = tokens[0].to_string();
         let source_currency = tokens[1].to_string();
         let dest_exchange = tokens[2].to_string();
@@ -64,13 +68,50 @@ fn parse_input(input: &str) -> model::InputType {
     }
 }
 
-fn handle_price_update(price_update: model::PriceUpdate) {
-    println!("{:#?}", price_update);
+fn handle_price_update(
+    graph: &mut model::Graph, graph_result: &mut model::GraphResult, price_update: model::PriceUpdate
+) {
+    let from_vertex = model::Vertex::new(
+        price_update.get_exchange().to_string(),
+        price_update.get_source_currency().to_string()
+    );
+    let to_vertex = model::Vertex::new(
+        price_update.get_exchange().to_string(),
+        price_update.get_dest_currency().to_string()
+    );
+
+    let arc_from_vertex = Arc::new(from_vertex);
+    let arc_to_vertex = Arc::new(to_vertex);
+
+    // Add edges
+    graph_result.add_edge_weight(arc_from_vertex.clone(), arc_to_vertex.clone(),
+        price_update.get_forward_ratio(), price_update.get_datetime()
+    );
+    graph_result.add_edge_weight(arc_to_vertex.clone(), arc_from_vertex.clone(),
+        price_update.get_backward_ratio(), price_update.get_datetime()
+    );
+
+    // Add vertices
+    graph.add_vertex(arc_from_vertex);
+    graph.add_vertex(arc_to_vertex);
+
+    let vertices = graph.get_vertices();
+    let currencies = graph.get_currencies();
+
+    // Add edges for same currency across different exchanges
+    graph_result.add_edge_weight_for_currency(vertices, currencies);
+    // graph_result.add_edge_weight_for_currency(vertices, currencies);
+    
+    // println!("{:#?}", graph);
+    // println!("{:#?}", graph_result);
 }
 
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+
+    let mut graph_result = model::GraphResult::new();
+    let mut graph = model::Graph::new();
 
     if args.len() != 2 {
         panic!("Usage: cargo run <input_file>, e.g. cargo run input.txt");
@@ -86,7 +127,9 @@ fn main() {
     let splitted_lines = file_content.split("\n");
     for line in splitted_lines {
         match parse_input(line) {
-            model::InputType::PriceUpdate(price_update) => handle_price_update(price_update),
+            model::InputType::PriceUpdate(price_update) => handle_price_update(
+                &mut graph, &mut graph_result, price_update
+            ),
             model::InputType::ExchangeRateRequest(exchange_rate_request) => println!("{:#?}", exchange_rate_request),
             model::InputType::Invalid(m) => println!("{}. Moving to the next input line...", m)
         };
