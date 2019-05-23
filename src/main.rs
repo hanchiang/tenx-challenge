@@ -91,6 +91,9 @@ fn handle_price_update(
         price_update.get_backward_ratio(), price_update.get_datetime()
     );
 
+    let arc_from_vertex_clone = arc_from_vertex.clone();
+    let arc_to_vertex_clone = arc_to_vertex.clone();
+
     // Add vertices
     graph.add_vertex(arc_from_vertex);
     graph.add_vertex(arc_to_vertex);
@@ -99,11 +102,12 @@ fn handle_price_update(
     let currencies = graph.get_currencies();
 
     // Add edges for same currency across different exchanges
-    graph_result.add_edge_weight_for_currency(vertices, currencies);
-    // graph_result.add_edge_weight_for_currency(vertices, currencies);
+    graph_result.add_edge_weight_for_currency(arc_from_vertex_clone, vertices);
+    graph_result.add_edge_weight_for_currency(arc_to_vertex_clone, vertices);
+
     
     // println!("{:#?}", graph);
-    // println!("{:#?}", graph_result);
+    // println!("Showing graph result: {:#?}", graph_result);
 }
 
 

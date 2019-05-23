@@ -2,6 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
+use chrono::Utc;
+
 #[derive(Debug)]
 pub enum InputType {
     ExchangeRateRequest(ExchangeRateRequest),
@@ -150,6 +152,15 @@ pub struct EdgeWeight {
   last_updated: u64
 }
 
+impl Default for EdgeWeight {
+  fn default() -> Self {
+    EdgeWeight {
+      weight: 0.0,
+      last_updated: Utc::now().timestamp_millis() as u64
+    }
+  }
+}
+
 impl EdgeWeight {
   pub fn new(weight: f64, last_updated: u64) -> EdgeWeight {
     EdgeWeight {
@@ -161,12 +172,16 @@ impl EdgeWeight {
     self.weight
   }
 
+  pub fn set_weight(&mut self, weight: f64) {
+    self.weight = weight;
+  }
+
   pub fn get_last_updated(&self) -> u64 {
     self.last_updated
   }
 
-  pub fn set_weight(&mut self, weight: f64) {
-    self.weight = weight;
+  pub fn set_last_updated(&mut self, last_updated: u64) {
+    self.last_updated = last_updated;
   }
 }
 
@@ -192,42 +207,58 @@ impl GraphResult {
   ) {
     match self.rate.get_mut(&from_vertex) {
       Some(inner_map) => {
-        match inner_map.get(&to_vertex) {
+        match inner_map.get_mut(&to_vertex) {
           Some(edge) => {
             if datetime > edge.get_last_updated() {
-              inner_map.entry(to_vertex).and_modify(|e| {
-                e.set_weight(weight);
-              });
+              edge.set_weight(weight);
+              edge.set_last_updated(datetime);
             }
           },
+          // No record of edge from `from_vertex` to `to_vertex`
           None => {
             let inner: HashMap<Arc<Vertex>, EdgeWeight> = HashMap::new();
             inner_map.insert(to_vertex, EdgeWeight::new(weight, datetime));
           }
         }
-
       },
+      // No record of `from_vertex` in `rate`
       None => {
         let mut inner_map: HashMap<Arc<Vertex>, EdgeWeight> = HashMap::new();
-        // // 0 edge weight for linking to same vertex
-        // inner_map.insert(from_vertex.clone(), EdgeWeight::new(0.0, datetime));
         inner_map.insert(to_vertex, EdgeWeight::new(weight, datetime));
         self.rate.insert(from_vertex, inner_map);
       }
     }
   }
 
-  // TODO: call this in exchange rate request part
+  // Get a list of vertices with the same currency as the vertex that was just inserted
+  // Add edge weight of 1 from vertexInserted to other vertices and vice versa
   pub fn add_edge_weight_for_currency(
-    &self, vertices: &HashSet<Arc<Vertex>>, currencies: &HashSet<String>
+    &mut self, vertexInserted: Arc<Vertex>, vertices: &HashSet<Arc<Vertex>>
   ) {
-    // Get list of unique currencies
-    // For each currency, add edge weight of 1 to other all other exchanges with same currency
-    for currency in currencies.iter() {
-      println!("Get vertices for {}", currency);
-      let mut vertices_for_currency: HashSet<Arc<Vertex>> = vertices.iter().cloned().collect();
-      vertices_for_currency.retain(|v| v.get_currency() == currency);
-      println!("{:#?}", vertices_for_currency);
+    let currenncy_to_match = vertexInserted.get_currency();
+    let mut vertices_for_currency: HashSet<Arc<Vertex>> = vertices.clone();
+    // O(V)
+    vertices_for_currency.retain(|v| v.get_currency() == currenncy_to_match);
+
+    // O(V2 < V)
+    for vertex in vertices_for_currency {
+      // Do not set edge to link to the same vertex
+      if vertex != vertexInserted {
+        // Set edge from vertexInserted to vertex
+        match self.rate.get_mut(&vertexInserted) {
+          Some(inner_map) => {
+            inner_map.insert(vertex.clone(), EdgeWeight::new(1.0, Utc::now().timestamp_millis() as u64));
+          },
+          None => ()
+        }
+        // Set edge from vertex to vertexInserted
+        match self.rate.get_mut(&vertex) {
+          Some(inner_map) => {
+            inner_map.insert(vertexInserted.clone(), EdgeWeight::new(1.0, Utc::now().timestamp_millis() as u64));
+          },
+          None => ()
+        }
+      }
     }
   }
 }
