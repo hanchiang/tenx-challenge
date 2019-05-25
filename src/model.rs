@@ -1,17 +1,14 @@
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use chrono::Utc;
 
-#[derive(Debug)]
 pub enum InputType {
     ExchangeRateRequest(ExchangeRateRequest),
     PriceUpdate(PriceUpdate),
     Invalid(String)
 }
 
-#[derive(Debug)]
 pub struct PriceUpdate {
     datetime: u64,  // millisecond
     exchange: String,
@@ -56,7 +53,6 @@ impl PriceUpdate {
   }
 }
 
-#[derive(Debug)]
 pub struct ExchangeRateRequest {
     source_exchange: String,
     source_currency: String,
@@ -90,7 +86,6 @@ impl ExchangeRateRequest {
   }
 }
 
-#[derive(Debug)]
 #[derive(Hash, PartialEq, Eq, Clone)]
 pub struct Vertex {
   exchange: String,
@@ -113,7 +108,6 @@ impl Vertex {
   }
 }
 
-#[derive(Debug)]
 pub struct Graph {
   vertices: HashSet<Arc<Vertex>>
 }
@@ -139,7 +133,6 @@ impl Graph {
   }
 }
 
-#[derive(Debug)]
 pub struct EdgeWeight {
   weight: f64,
   last_updated: u64
@@ -178,7 +171,6 @@ impl EdgeWeight {
   }
 }
 
-#[derive(Debug)]
 pub struct GraphResult {
   // stores the edge weights between each pair of vertex
   adj_matrix: HashMap<Arc<Vertex>, HashMap<Arc<Vertex>, EdgeWeight>>,
@@ -203,11 +195,9 @@ impl GraphResult {
 
     match self.next.get_mut(i) {
       Some(inner_map) => {
-        println!("Before replace: {:#?}", inner_map.get(j));
         inner_map.entry(j.clone())
           .and_modify(|vertex| { *vertex = ik_next.clone() })
           .or_insert(ik_next);
-        println!("After replace: {:#?}", inner_map.get(j));
       },
       // vertex `i` will always be found in `next`
       None => ()
@@ -291,7 +281,6 @@ impl GraphResult {
           },
           // No record of edge from `from_vertex` to `to_vertex`
           None => {
-            let inner: HashMap<Arc<Vertex>, EdgeWeight> = HashMap::new();
             inner_map.insert(to_vertex.clone(), EdgeWeight::new(weight, datetime));
           }
         }
@@ -353,8 +342,6 @@ impl GraphResult {
         GraphResult::add_next_vertex(&mut self.next, i, j);
       }
     }
-    // println!("best rate: {:#?}", self.best_rate);
-    // println!("next: {:#?}", self.next);
 
     for i in vertices.iter().cloned() {
         for j in vertices.iter().cloned() {
@@ -368,11 +355,6 @@ impl GraphResult {
                     if ij_weight < ik_weight * kj_weight {
                         GraphResult::add_best_rate(&mut self.best_rate, &i, &j, ik_weight * kj_weight);
                         self.update_next_vertex(&i, &j, &k);
-                        // println!("After update next vertex");
-                        // println!("best rate: {:#?}", self.best_rate);
-                        // println!("next: {:#?}", self.next);
-                        // println!("{:#?}\n{:#?}", i, j);
-                        // println!("Old rate: {}. Found better rate: {}", ij_weight, ik_weight * kj_weight);
                     }
                 }
             }
@@ -381,12 +363,10 @@ impl GraphResult {
   }
 
   pub fn best_rate_path(&self, from_vertex: &Arc<Vertex>, to_vertex: &Arc<Vertex>) -> Option<Vec<Arc<Vertex>>> {
-    println!("best rate from vertex: {:#?}", from_vertex);
-    println!("best rate to vertex: {:#?}", to_vertex);
     match self.next.get(from_vertex) {
       Some(inner_map) => {
         match inner_map.get(to_vertex) {
-          Some(vertex) => (),
+          Some(_) => (),
           None => return None
         }
       },

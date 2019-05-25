@@ -2,7 +2,6 @@ use std::env;
 use std::io;
 use std::fs::File;
 use std::io::Read;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 // Third party libraries
@@ -51,7 +50,7 @@ fn parse_input(input: &str) -> model::InputType {
         };
 
         let both_ratio = forward_ratio * backward_ratio;
-        if (both_ratio <= 0.0 || both_ratio > 1.0) {
+        if both_ratio <= 0.0 || both_ratio > 1.0 {
             return model::InputType::Invalid("Resultant ratios is invalid".to_string())
         }
         model::InputType::PriceUpdate(model::PriceUpdate::new (
@@ -110,11 +109,7 @@ fn handle_price_update(
 
     // Add edges for same currency across different exchanges
     graph_result.add_edge_weight_for_currency(arc_from_vertex_clone, vertices);
-    graph_result.add_edge_weight_for_currency(arc_to_vertex_clone, vertices);
-
-    
-    // println!("{:#?}", graph);
-    // println!("Showing graph result: {:#?}", graph_result);
+    graph_result.add_edge_weight_for_currency(arc_to_vertex_clone, vertices)
 }
 
 // Get best rate between every pair of vertices
@@ -177,7 +172,7 @@ fn main() {
             ),
             model::InputType::ExchangeRateRequest(exchange_rate_request) => handle_exchange_rate_request(
                 &graph, &mut graph_result, exchange_rate_request),
-            model::InputType::Invalid(m) => println!("{}. Moving to the next input line...", m)
+            model::InputType::Invalid(_) => continue
         };
     }
 }
