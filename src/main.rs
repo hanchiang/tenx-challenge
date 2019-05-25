@@ -74,7 +74,6 @@ fn parse_input(input: &str) -> model::InputType {
 // 1. Add edges between vertices
 // 2. Add vertices
 // 3. Add edges for same currency across different exchanges
-// 4. Add j vertex in `next` for next[i][j]
 fn handle_price_update(
     graph: &mut model::Graph, graph_result: &mut model::GraphResult, price_update: model::PriceUpdate
 ) {
@@ -128,7 +127,6 @@ fn handle_exchange_rate_request(graph: & model::Graph,
         exchange_rate_request.get_dest_currency().to_string()
     ));
     
-
     // Print result
     println!("BEST_RATES_BEGIN {} {} {} {} {}", exchange_rate_request.get_source_exchange(),
         exchange_rate_request.get_source_currency(), exchange_rate_request.get_dest_exchange(),

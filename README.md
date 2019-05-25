@@ -1,7 +1,7 @@
 
 ## Data structure
-Model graph as a V x V adjacency matrix, because there is a high likelihood of a dense graph and therefore minimise space wastage
 Each vertex is represented by `(exchange, currency)` pair
+Model graph as adjacency matrix, because there is a high likelihood of a dense graph and therefore minimise space wastage
 Each edge is represented by the i, j entry in the adjacency matrix
 
 ## Price update
@@ -22,8 +22,13 @@ Each edge is represented by the i, j entry in the adjacency matrix
 Each line in the file follows the format of price update or exchange rate request ending with line break
 
 **Operations**
-If vertices don't exist, add them in the graph and add the edges.
-If vertices exist, update the edges if `timestamp` is after the last updated timestamp for the vertices
+* Price update 
+  * Add edges in graph
+  * Add vertices in graph
+  * Add edge weight 1 for vertices with same currency
+* Exchange rate request
+  * Run floyd warshall to find best rate
+  * Print result
 
 ## How to use
 * Clone project: `git clone git@github.com:hanchiang/tenx-challenge.git`
