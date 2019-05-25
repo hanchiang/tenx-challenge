@@ -174,3 +174,13 @@ fn main() {
         };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn read_invalid_file() {
+        read_file("non-existent-file.txt").unwrap_err();
+    }
+}
