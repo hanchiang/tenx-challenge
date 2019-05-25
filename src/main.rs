@@ -2,7 +2,7 @@ use std::env;
 use std::io;
 use std::fs::File;
 use std::io::Read;
-use std::sync::Arc;
+use std::rc::Rc;
 
 // Third party libraries
 use chrono::DateTime;
@@ -86,8 +86,8 @@ fn handle_price_update(
         price_update.get_dest_currency().to_string()
     );
 
-    let arc_from_vertex = Arc::new(from_vertex);
-    let arc_to_vertex = Arc::new(to_vertex);
+    let arc_from_vertex = Rc::new(from_vertex);
+    let arc_to_vertex = Rc::new(to_vertex);
 
     // Add edges
     graph_result.add_edge_weight(arc_from_vertex.clone(), arc_to_vertex.clone(),
@@ -118,11 +118,11 @@ fn handle_exchange_rate_request(graph: & model::Graph,
 ) {
     graph_result.find_best_rates(graph.get_vertices());
 
-    let arc_from_vertex = Arc::new(model::Vertex::new(
+    let arc_from_vertex = Rc::new(model::Vertex::new(
         exchange_rate_request.get_source_exchange().to_string(),
         exchange_rate_request.get_source_currency().to_string()
     ));
-    let arc_to_vertex = Arc::new(model::Vertex::new(
+    let arc_to_vertex = Rc::new(model::Vertex::new(
         exchange_rate_request.get_dest_exchange().to_string(),
         exchange_rate_request.get_dest_currency().to_string()
     ));

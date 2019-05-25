@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::rc::Rc;
 
 use chrono::Utc;
 
@@ -109,7 +109,7 @@ impl Vertex {
 }
 
 pub struct Graph {
-  vertices: HashSet<Arc<Vertex>>
+  vertices: HashSet<Rc<Vertex>>
 }
 
 impl Graph {
@@ -119,11 +119,11 @@ impl Graph {
     }
   }
 
-  pub fn get_vertices(&self) -> &HashSet<Arc<Vertex>> {
+  pub fn get_vertices(&self) -> &HashSet<Rc<Vertex>> {
     &self.vertices
   }
 
-  pub fn add_vertex(&mut self, vertex: Arc<Vertex>) {
+  pub fn add_vertex(&mut self, vertex: Rc<Vertex>) {
     match self.vertices.get(&vertex) {
       Some(_) => (),
       None => {
@@ -173,11 +173,11 @@ impl EdgeWeight {
 
 pub struct GraphResult {
   // stores the edge weights between each pair of vertex
-  adj_matrix: HashMap<Arc<Vertex>, HashMap<Arc<Vertex>, EdgeWeight>>,
+  adj_matrix: HashMap<Rc<Vertex>, HashMap<Rc<Vertex>, EdgeWeight>>,
   // stores the best rate between each pair of vertex
-  best_rate: HashMap<Arc<Vertex>, HashMap<Arc<Vertex>, f64>>,
+  best_rate: HashMap<Rc<Vertex>, HashMap<Rc<Vertex>, f64>>,
   // stores vertices to reconstruct the path for best rate from vertex i to j
-  next: HashMap<Arc<Vertex>, HashMap<Arc<Vertex>, Arc<Vertex>>>
+  next: HashMap<Rc<Vertex>, HashMap<Rc<Vertex>, Rc<Vertex>>>
 }
 
 impl GraphResult {
@@ -190,7 +190,7 @@ impl GraphResult {
   }
 
   // Update next[i][j] to next[i][k]
-  pub fn update_next_vertex(&mut self, i: &Arc<Vertex>, j: &Arc<Vertex>, k: &Arc<Vertex>) {
+  pub fn update_next_vertex(&mut self, i: &Rc<Vertex>, j: &Rc<Vertex>, k: &Rc<Vertex>) {
     let ik_next = self.next.get(i).unwrap().get(k).unwrap().clone();
 
     match self.next.get_mut(i) {
@@ -205,8 +205,8 @@ impl GraphResult {
   }
 
   // Add `to_vertex` in next[from_vertex][to_vertex]
-  fn add_next_vertex(next: &mut HashMap<Arc<Vertex>, HashMap<Arc<Vertex>, Arc<Vertex>>>,
-    from_vertex: &Arc<Vertex>, to_vertex: &Arc<Vertex>
+  fn add_next_vertex(next: &mut HashMap<Rc<Vertex>, HashMap<Rc<Vertex>, Rc<Vertex>>>,
+    from_vertex: &Rc<Vertex>, to_vertex: &Rc<Vertex>
   ) {
     match next.get_mut(from_vertex) {
       Some(inner_map) => {
@@ -219,7 +219,7 @@ impl GraphResult {
       },
       // No record of `from_vertex` in `next`
       None => {
-        let mut inner_map: HashMap<Arc<Vertex>, Arc<Vertex>> = HashMap::new();
+        let mut inner_map: HashMap<Rc<Vertex>, Rc<Vertex>> = HashMap::new();
         inner_map.insert(to_vertex.clone(), to_vertex.clone());
         next.insert(from_vertex.clone(), inner_map);
       }
@@ -227,7 +227,7 @@ impl GraphResult {
   }
 
   // Get the edge weight of adj_matrix[from_vertex][to_vertex]
-  pub fn get_edge_weight(&self, from_vertex: &Arc<Vertex>, to_vertex: &Arc<Vertex>) -> f64 {
+  pub fn get_edge_weight(&self, from_vertex: &Rc<Vertex>, to_vertex: &Rc<Vertex>) -> f64 {
     match self.adj_matrix.get(from_vertex) {
       Some(inner_map) => {
         match inner_map.get(to_vertex) {
@@ -242,8 +242,8 @@ impl GraphResult {
   }
 
   // Set the edge weight of best_rate[from_vertex][to_vertex]
-  fn add_best_rate(best_rate: &mut HashMap<Arc<Vertex>, HashMap<Arc<Vertex>, f64>>,
-    from_vertex: &Arc<Vertex>, to_vertex: &Arc<Vertex>, weight: f64
+  fn add_best_rate(best_rate: &mut HashMap<Rc<Vertex>, HashMap<Rc<Vertex>, f64>>,
+    from_vertex: &Rc<Vertex>, to_vertex: &Rc<Vertex>, weight: f64
   ) {
     match best_rate.get_mut(from_vertex) {
       Some(inner_map) => {
@@ -252,21 +252,21 @@ impl GraphResult {
           .or_insert(weight);
       },
       None => {
-        let mut inner_map: HashMap<Arc<Vertex>, f64> = HashMap::new();
+        let mut inner_map: HashMap<Rc<Vertex>, f64> = HashMap::new();
         inner_map.insert(to_vertex.clone(), weight);
         best_rate.insert(from_vertex.clone(), inner_map);
       }
     }
   }
 
-  pub fn get_best_rate(&self, from_vertex: &Arc<Vertex>, to_vertex: &Arc<Vertex>) -> f64 {
+  pub fn get_best_rate(&self, from_vertex: &Rc<Vertex>, to_vertex: &Rc<Vertex>) -> f64 {
     *self.best_rate.get(from_vertex).unwrap().get(to_vertex).unwrap()
   }
 
 
   // Add edge weight in adj_matrix[from_vertex][to_vertex]
   pub fn add_edge_weight(
-    &mut self, from_vertex: Arc<Vertex>, to_vertex: Arc<Vertex>,
+    &mut self, from_vertex: Rc<Vertex>, to_vertex: Rc<Vertex>,
     weight: f64, datetime: u64
   ) {
     // Add edge from `from_vertex` to `to_vertex`
@@ -287,7 +287,7 @@ impl GraphResult {
       },
       // No record of `from_vertex` in `adj_matrix`
       None => {
-        let mut inner_map: HashMap<Arc<Vertex>, EdgeWeight> = HashMap::new();
+        let mut inner_map: HashMap<Rc<Vertex>, EdgeWeight> = HashMap::new();
         inner_map.insert(to_vertex.clone(), EdgeWeight::new(weight, datetime));
         self.adj_matrix.insert(from_vertex.clone(), inner_map);
       }
@@ -298,10 +298,10 @@ impl GraphResult {
   // 2. Add edge weight of 1 from vertex_inserted to other vertices[v1..vn] and vice versa
   // Runtime: O(V + V2), V2 < V
   pub fn add_edge_weight_for_currency(
-    &mut self, vertex_inserted: Arc<Vertex>, vertices: &HashSet<Arc<Vertex>>
+    &mut self, vertex_inserted: Rc<Vertex>, vertices: &HashSet<Rc<Vertex>>
   ) {
     let currenncy_to_match = vertex_inserted.get_currency();
-    let mut vertices_for_currency: HashSet<Arc<Vertex>> = vertices.clone();
+    let mut vertices_for_currency: HashSet<Rc<Vertex>> = vertices.clone();
     // O(V)
     vertices_for_currency.retain(|v| { v.get_currency() == currenncy_to_match });
 
@@ -332,7 +332,7 @@ impl GraphResult {
   }
 
   // Modified floyd warshall to get the best rate for every pair of vertices
-  pub fn find_best_rates(&mut self, vertices: &HashSet<Arc<Vertex>>) {
+  pub fn find_best_rates(&mut self, vertices: &HashSet<Rc<Vertex>>) {
     // For all edges, add edge in rate[i][j], add j in next[i][j]
     for (i, inner_map) in self.adj_matrix.iter_mut() {
       for (j, edge) in inner_map.iter() {
@@ -362,7 +362,7 @@ impl GraphResult {
     }
   }
 
-  pub fn best_rate_path(&self, from_vertex: &Arc<Vertex>, to_vertex: &Arc<Vertex>) -> Option<Vec<Arc<Vertex>>> {
+  pub fn best_rate_path(&self, from_vertex: &Rc<Vertex>, to_vertex: &Rc<Vertex>) -> Option<Vec<Rc<Vertex>>> {
     match self.next.get(from_vertex) {
       Some(inner_map) => {
         match inner_map.get(to_vertex) {
