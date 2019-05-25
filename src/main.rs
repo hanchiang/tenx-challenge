@@ -50,15 +50,19 @@ fn parse_input(input: &str) -> model::InputType {
             Err(_) => return model::InputType::Invalid("Invalid backward ratio".to_string())
         };
 
+        let both_ratio = forward_ratio * backward_ratio;
+        if (both_ratio <= 0.0 || both_ratio > 1.0) {
+            return model::InputType::Invalid("Resultant ratios is invalid".to_string())
+        }
         model::InputType::PriceUpdate(model::PriceUpdate::new (
             datetime, exchange, source_currency, dest_currency, forward_ratio, backward_ratio
         ))
     } else if num_tokens == constants::NUM_TOKEN_EXCHANGE_RATE_REQUEST {
         // parse exchange rate request
-        let source_exchange = tokens[0].to_string();
-        let source_currency = tokens[1].to_string();
-        let dest_exchange = tokens[2].to_string();
-        let dest_currency = tokens[3].to_string();
+        let source_exchange = tokens[1].to_string();
+        let source_currency = tokens[2].to_string();
+        let dest_exchange = tokens[3].to_string();
+        let dest_currency = tokens[4].to_string();
 
         model::InputType::ExchangeRateRequest(model::ExchangeRateRequest::new(
             source_exchange, source_currency, dest_exchange, dest_currency
@@ -68,6 +72,10 @@ fn parse_input(input: &str) -> model::InputType {
     }
 }
 
+// 1. Add edges between vertices
+// 2. Add vertices
+// 3. Add edges for same currency across different exchanges
+// 4. Add j vertex in `next` for next[i][j]
 fn handle_price_update(
     graph: &mut model::Graph, graph_result: &mut model::GraphResult, price_update: model::PriceUpdate
 ) {
@@ -106,7 +114,41 @@ fn handle_price_update(
 
     
     // println!("{:#?}", graph);
-    println!("Showing graph result: {:#?}", graph_result);
+    // println!("Showing graph result: {:#?}", graph_result);
+}
+
+// Get best rate between every pair of vertices
+// Get the best rate path
+fn handle_exchange_rate_request(graph: & model::Graph,
+    graph_result: &mut model::GraphResult, exchange_rate_request: model::ExchangeRateRequest
+) {
+    graph_result.find_best_rates(graph.get_vertices());
+
+    let arc_from_vertex = Arc::new(model::Vertex::new(
+        exchange_rate_request.get_source_exchange().to_string(),
+        exchange_rate_request.get_source_currency().to_string()
+    ));
+    let arc_to_vertex = Arc::new(model::Vertex::new(
+        exchange_rate_request.get_dest_exchange().to_string(),
+        exchange_rate_request.get_dest_currency().to_string()
+    ));
+    
+
+    // Print result
+    println!("BEST_RATES_BEGIN {} {} {} {} {}", exchange_rate_request.get_source_exchange(),
+        exchange_rate_request.get_source_currency(), exchange_rate_request.get_dest_exchange(),
+        exchange_rate_request.get_dest_currency(), graph_result.get_best_rate(&arc_from_vertex, &arc_to_vertex)
+    );
+
+    match graph_result.best_rate_path(&arc_from_vertex, &arc_to_vertex) {
+        Some(best_rate_path) => {
+            for vertex in best_rate_path {
+                println!("<{}, {}>", vertex.get_exchange(), vertex.get_currency());
+            }
+        },
+        None => ()
+    }
+    println!("BEST_RATES_END");
 }
 
 
@@ -133,7 +175,8 @@ fn main() {
             model::InputType::PriceUpdate(price_update) => handle_price_update(
                 &mut graph, &mut graph_result, price_update
             ),
-            model::InputType::ExchangeRateRequest(exchange_rate_request) => println!("{:#?}", exchange_rate_request),
+            model::InputType::ExchangeRateRequest(exchange_rate_request) => handle_exchange_rate_request(
+                &graph, &mut graph_result, exchange_rate_request),
             model::InputType::Invalid(m) => println!("{}. Moving to the next input line...", m)
         };
     }
