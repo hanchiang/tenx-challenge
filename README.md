@@ -37,6 +37,6 @@ Each line in the file follows the format of price update or exchange rate reques
 
 
 ## Note
-There are over 2000 cryptocurrencies and 200 crypto exchanges as of 18 May 2019
-There are multiple trading pairs that involve the same currency such as fiat and base coins, resulting in a denser graph
+There are over 2000 cryptocurrencies and 200 crypto exchanges as of 18 May 2019  
+There are multiple trading pairs that involve the same currency such as fiat and base coins, resulting in a denser graph  
 Price updates arrive frequently
