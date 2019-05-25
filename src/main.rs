@@ -99,7 +99,6 @@ fn handle_price_update(
     graph.add_vertex(arc_to_vertex);
 
     let vertices = graph.get_vertices();
-    let currencies = graph.get_currencies();
 
     // Add edges for same currency across different exchanges
     graph_result.add_edge_weight_for_currency(arc_from_vertex_clone, vertices);
@@ -107,7 +106,7 @@ fn handle_price_update(
 
     
     // println!("{:#?}", graph);
-    // println!("Showing graph result: {:#?}", graph_result);
+    println!("Showing graph result: {:#?}", graph_result);
 }
 
 

@@ -115,15 +115,13 @@ impl Vertex {
 
 #[derive(Debug)]
 pub struct Graph {
-  vertices: HashSet<Arc<Vertex>>,
-  currencies: HashSet<String>
+  vertices: HashSet<Arc<Vertex>>
 }
 
 impl Graph {
   pub fn new() -> Graph {
     Graph {
-      vertices: HashSet::new(),
-      currencies: HashSet::new()
+      vertices: HashSet::new()
     }
   }
 
@@ -131,15 +129,10 @@ impl Graph {
     &self.vertices
   }
 
-  pub fn get_currencies(&self) -> &HashSet<String> {
-    &self.currencies
-  }
-
   pub fn add_vertex(&mut self, vertex: Arc<Vertex>) {
     match self.vertices.get(&vertex) {
       Some(_) => (),
       None => {
-        self.currencies.insert(vertex.get_currency().to_string());
         self.vertices.insert(vertex);
       }
     }
@@ -231,30 +224,33 @@ impl GraphResult {
   }
 
   // Get a list of vertices with the same currency as the vertex that was just inserted
-  // Add edge weight of 1 from vertexInserted to other vertices and vice versa
+  // Add edge weight of 1 from vertex_inserted to other vertices and vice versa
+  // Runtime: O(V + V2), V2 < V
   pub fn add_edge_weight_for_currency(
-    &mut self, vertexInserted: Arc<Vertex>, vertices: &HashSet<Arc<Vertex>>
+    &mut self, vertex_inserted: Arc<Vertex>, vertices: &HashSet<Arc<Vertex>>
   ) {
-    let currenncy_to_match = vertexInserted.get_currency();
+    let currenncy_to_match = vertex_inserted.get_currency();
     let mut vertices_for_currency: HashSet<Arc<Vertex>> = vertices.clone();
     // O(V)
-    vertices_for_currency.retain(|v| v.get_currency() == currenncy_to_match);
+    vertices_for_currency.retain(|v| { v.get_currency() == currenncy_to_match });
 
     // O(V2 < V)
     for vertex in vertices_for_currency {
       // Do not set edge to link to the same vertex
-      if vertex != vertexInserted {
-        // Set edge from vertexInserted to vertex
-        match self.rate.get_mut(&vertexInserted) {
+      if vertex != vertex_inserted {
+        // Set edge from vertex_inserted to vertex
+        match self.rate.get_mut(&vertex_inserted) {
           Some(inner_map) => {
-            inner_map.insert(vertex.clone(), EdgeWeight::new(1.0, Utc::now().timestamp_millis() as u64));
+            inner_map.entry(vertex.clone())
+              .or_insert(EdgeWeight::new(1.0, Utc::now().timestamp_millis() as u64));
           },
           None => ()
         }
-        // Set edge from vertex to vertexInserted
+        // Set edge from vertex to vertex_inserted
         match self.rate.get_mut(&vertex) {
           Some(inner_map) => {
-            inner_map.insert(vertexInserted.clone(), EdgeWeight::new(1.0, Utc::now().timestamp_millis() as u64));
+            inner_map.entry(vertex_inserted.clone())
+              .or_insert(EdgeWeight::new(1.0, Utc::now().timestamp_millis() as u64));
           },
           None => ()
         }
